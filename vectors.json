@@ -1,0 +1,205 @@
+{
+  "codec": {
+    "name": "tessellio",
+    "wireId": 8
+  },
+  "generator": "hand-derived (the codec specification, the normative wire spec); every payload is a stored DEFLATE block so each byte is verifiable by hand",
+  "schema": 1,
+  "vectors": [
+    {
+      "frames": [
+        {
+          "baseUpdateId": 6,
+          "chunks": [
+            {
+              "count": 1,
+              "index": 0,
+              "proto": "080710061808200430014008",
+              "regions": [],
+              "updateBytes": 0
+            }
+          ],
+          "expect": {
+            "ack": true,
+            "appliedUpdateId": 7,
+            "paints": "nothing"
+          },
+          "height": 4,
+          "updateId": 7,
+          "width": 8
+        }
+      ],
+      "id": "V1-empty-delta-idle-frame",
+      "summary": "A frame with no chunks and no regions: the header alone is a complete, applyable frame. frame_bytes and chunk_index are proto3 defaults and are omitted.",
+      "title": "Empty delta (idle frame)"
+    },
+    {
+      "frames": [
+        {
+          "baseUpdateId": 1,
+          "chunks": [
+            {
+              "count": 1,
+              "index": 0,
+              "proto": "08021001180820043001381640084a2008021001180420022a16011100eeff010000020000040000f8e0071f00ffff00",
+              "regions": [
+                {
+                  "cells565": "00f8e0071f00ffff0000000000000000",
+                  "height": 2,
+                  "payload": "011100eeff010000020000040000f8e0071f00ffff00",
+                  "width": 4,
+                  "x": 2,
+                  "y": 1
+                }
+              ],
+              "updateBytes": 22
+            }
+          ],
+          "expect": {
+            "ack": true,
+            "appliedUpdateId": 2,
+            "paints": "region-local"
+          },
+          "height": 4,
+          "updateId": 2,
+          "width": 8
+        }
+      ],
+      "id": "V2-literal-run-sparse-delta",
+      "summary": "ROW 0 then SPAN x=0 len=4 of literal pixels; the region's second row is never written and must stay untouched. Op stream 17 B, stored-DEFLATE payload 22 B.",
+      "title": "Literal run (one SPAN, sparse delta)"
+    },
+    {
+      "frames": [
+        {
+          "baseUpdateId": 0,
+          "chunks": [
+            {
+              "count": 1,
+              "index": 0,
+              "proto": "0803180620033001382440084a2a180620032a24011f00e0ff010000030000060000000101000300000600ffff0102000300000600108400",
+              "regions": [
+                {
+                  "cells565": "000000000000000000000000ffffffffffffffffffffffff108410841084108410841084",
+                  "height": 3,
+                  "payload": "011f00e0ff010000030000060000000101000300000600ffff0102000300000600108400",
+                  "width": 6,
+                  "x": 0,
+                  "y": 0
+                }
+              ],
+              "updateBytes": 36
+            }
+          ],
+          "expect": {
+            "ack": true,
+            "appliedUpdateId": 3,
+            "paints": "full-coverage"
+          },
+          "height": 3,
+          "updateId": 3,
+          "width": 6
+        }
+      ],
+      "id": "V3-full-coverage-multi-row-fill-reset",
+      "summary": "A reset frame (base 0) whose single region must cover every row contiguously: one ROW and one row-maximum FILL per row. A stream with a missing row or a gap must be rejected with COVERAGE_INVALID (the corpus carries both mutants).",
+      "title": "Full-coverage multi-row FILL (reset frame)"
+    },
+    {
+      "frames": [
+        {
+          "baseUpdateId": 8,
+          "chunks": [
+            {
+              "count": 1,
+              "index": 0,
+              "proto": "08091008180820043001382e40084a24180820022a1e011900e6ff01000002010002001ff8ff0701010002060002001ff8ff07004a181002180820022a10010b00f4ff0100000203000100000000",
+              "regions": [
+                {
+                  "cells565": "00001ff8ff07000000000000000000000000000000000000000000001ff8ff07",
+                  "height": 2,
+                  "payload": "011900e6ff01000002010002001ff8ff0701010002060002001ff8ff0700",
+                  "width": 8,
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "cells565": "0000000000000000000000000000000000000000000000000000000000000000",
+                  "height": 2,
+                  "payload": "010b00f4ff0100000203000100000000",
+                  "width": 8,
+                  "x": 0,
+                  "y": 2
+                }
+              ],
+              "updateBytes": 46
+            }
+          ],
+          "expect": {
+            "ack": true,
+            "appliedUpdateId": 9,
+            "paints": "region-local"
+          },
+          "height": 4,
+          "updateId": 9,
+          "width": 8
+        }
+      ],
+      "id": "V4-multi-region-sparse-delta",
+      "summary": "Two disjoint regions in one chunk: region A writes frame rows 0 and 1 only at x=1..2 and x=6..7, region B writes frame row 2 at x=3. Frame row 3 is never written.",
+      "title": "Multi-region sparse delta with a skipped row"
+    },
+    {
+      "frames": [
+        {
+          "baseUpdateId": 9,
+          "chunks": [
+            {
+              "count": 2,
+              "index": 0,
+              "proto": "080a1009180820043002382040084a1a08011001180120012a10010b00f4ff010000020000010000f800",
+              "regions": [
+                {
+                  "cells565": "00f8",
+                  "height": 1,
+                  "payload": "010b00f4ff010000020000010000f800",
+                  "width": 1,
+                  "x": 1,
+                  "y": 1
+                }
+              ],
+              "updateBytes": 32
+            },
+            {
+              "count": 2,
+              "index": 1,
+              "proto": "080a10091808200428013002382040084a180802180120012a10010b00f4ff0100000200000100e00700",
+              "regions": [
+                {
+                  "cells565": "e007",
+                  "height": 1,
+                  "payload": "010b00f4ff0100000200000100e00700",
+                  "width": 1,
+                  "x": 2,
+                  "y": 0
+                }
+              ],
+              "updateBytes": 32
+            }
+          ],
+          "expect": {
+            "ack": true,
+            "appliedUpdateId": 10,
+            "paints": "after-all-chunks"
+          },
+          "height": 4,
+          "updateId": 10,
+          "width": 8
+        }
+      ],
+      "id": "V5-chunked-frame-two-chunks",
+      "summary": "One frame in two chunks: every chunk repeats frame_id, base_frame_id, geometry, chunk_count and frame_bytes; the frame is applied only after both chunks, and a receiver that sees chunk 1 first refuses the frame (missed_first_chunk).",
+      "title": "Chunked frame (two chunks) and chunk identity"
+    }
+  ]
+}
