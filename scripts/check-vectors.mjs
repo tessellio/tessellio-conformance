@@ -26,14 +26,14 @@
  *   - `schema == 1`, the codec identity (`tessellio`, wire id 8), and the five
  *     documented vector ids (a deletion or rename is a failure, not a smaller
  *     green run);
- *   - every `payload`, `cells565`, chunk `proto` and `surfaceCrc32` is
+ *   - every `payload`, `cells565`, part `proto` and `surfaceCrc32` is
  *     even-length, lowercase hex (uppercase hex is rejected so the file stays
  *     byte-comparable with the Rust test's normalizer);
- *   - per frame: chunk indices are exactly `0..count-1` in order, every chunk
+ *   - per frame: part indices are exactly `0..count-1` in order, every part
  *     repeats the frame's `count`/`updateBytes`, and `updateBytes` equals the sum
  *     of the frame's region payload lengths;
- *   - per chunk: every region's payload hex occurs inside the chunk's
- *     `proto` hex (the hand-derived chunk bytes and the region payloads cannot
+ *   - per part: every region's payload hex occurs inside the part's
+ *     `proto` hex (the hand-derived part bytes and the region payloads cannot
  *     drift apart);
  *   - per region: bounds inside the frame, `1..=262144` payload bytes, and,
  *     when present, `cells565` exactly `width * height * 2` bytes of hex.
@@ -42,7 +42,7 @@
  *   - `schema == 1` and the canonical generator name;
  *   - at least 64 cases with unique ids, each a `roundtrip` or an
  *     `expect-error` case with one of its three inputs;
- *   - `roundtrip`: the same chunk identity, `updateBytes` arithmetic and hex
+ *   - `roundtrip`: the same part identity, `updateBytes` arithmetic and hex
  *     rules as the vectors, `surfaceCrc32` as 8 lowercase hex digits when used
  *     instead of full `cells565`;
  *   - `expect-error`: the reason is one of the codec's eight resync reasons.
@@ -68,27 +68,27 @@ export const WORKSPACE_ROOT = path.resolve(REPO_ROOT, '..');
 export const VECTORS_RELATIVE = 'vectors.json';
 export const CORPUS_RELATIVE = 'corpus.json';
 export const RUST_CONSUMER_RELATIVE = '../tessellio-core/tests/codec_conformance.rs';
-export const TS_CONSUMER_RELATIVE = '../tessellio-ts/src/screen-op.test.ts';
+export const TS_CONSUMER_RELATIVE = '../tessellio-ts/src/op-stream.test.ts';
 
 /** The eight resync reasons of the wire contract (design §4.6). */
 export const RESYNC_REASONS = [
   'BASE_MISMATCH',
-  'INCOMPLETE_FRAME',
+  'INCOMPLETE_UPDATE',
   'DECODE_ERROR',
   'COVERAGE_INVALID',
   'UNKNOWN_CODEC',
   'QUEUE_OVERFLOW',
   'GEOMETRY_MISMATCH',
-  'CHUNK_GAP',
+  'PART_GAP',
 ];
 
 /** The five documented vectors, by id. */
 export const EXPECTED_VECTOR_IDS = [
-  'V1-empty-delta-idle-frame',
+  'V1-empty-delta-idle-update',
   'V2-literal-run-sparse-delta',
-  'V3-full-coverage-multi-row-fill-reset',
+  'V3-full-coverage-multi-row-fill-self-contained',
   'V4-multi-region-sparse-delta',
-  'V5-chunked-frame-two-chunks',
+  'V5-parted-update-two-parts',
 ];
 
 /** The one canonical corpus generator. */
@@ -136,36 +136,36 @@ function payloadBytes(hex) {
   return hex.length / 2;
 }
 
-/** Validate one chunk in the shape the vectors and the corpus share. */
-function validateChunk(chunk, frame, where, errors, { requireProto }) {
-  const label = `${where} chunk[${chunk?.index}]`;
-  if (!chunk || typeof chunk !== 'object') {
+/** Validate one part in the shape the vectors and the corpus share. */
+function validateChunk(part, frame, where, errors, { requireProto }) {
+  const label = `${where} part[${part?.index}]`;
+  if (!part || typeof part !== 'object') {
     errors.push(`${label}: not an object`);
     return 0;
   }
-  if (!isInteger(chunk.index) || chunk.index < 0) {
+  if (!isInteger(part.index) || part.index < 0) {
     errors.push(`${label}: index is not a non-negative integer`);
   }
-  if (!isInteger(chunk.count) || chunk.count < 1 || chunk.count > LIMITS.maxChunksPerFrame) {
+  if (!isInteger(part.count) || part.count < 1 || part.count > LIMITS.maxChunksPerFrame) {
     errors.push(`${label}: count is not in 1..=${LIMITS.maxChunksPerFrame}`);
   }
-  if (!isInteger(chunk.updateBytes) || chunk.updateBytes < 0) {
+  if (!isInteger(part.updateBytes) || part.updateBytes < 0) {
     errors.push(`${label}: updateBytes is not a non-negative integer`);
   }
   if (requireProto) {
-    const problem = hexProblem(chunk.proto, { allowEmpty: false });
+    const problem = hexProblem(part.proto, { allowEmpty: false });
     if (problem) {
       errors.push(`${label}: proto ${problem}`);
     }
   }
 
-  const regions = chunk.regions;
+  const regions = part.regions;
   if (!Array.isArray(regions)) {
     errors.push(`${label}: regions is not an array`);
     return 0;
   }
   if (regions.length > LIMITS.maxRegionsPerChunk) {
-    errors.push(`${label}: ${regions.length} regions exceeds the ${LIMITS.maxRegionsPerChunk} per-chunk cap`);
+    errors.push(`${label}: ${regions.length} regions exceeds the ${LIMITS.maxRegionsPerChunk} per-part cap`);
   }
 
   let bytes = 0;
@@ -196,9 +196,9 @@ function validateChunk(chunk, frame, where, errors, { requireProto }) {
         errors.push(`${regionLabel}: payload exceeds the ${LIMITS.maxRegionWireBytes}-byte wire cap`);
       }
     }
-    if (requireProto && !payloadProblem && typeof chunk.proto === 'string'
-      && !chunk.proto.includes(region.payload)) {
-      errors.push(`${regionLabel}: payload hex does not occur in the chunk proto hex`);
+    if (requireProto && !payloadProblem && typeof part.proto === 'string'
+      && !part.proto.includes(region.payload)) {
+      errors.push(`${regionLabel}: payload hex does not occur in the part proto hex`);
     }
     if (region.cells565 !== undefined) {
       const problem = hexProblem(region.cells565);
@@ -214,7 +214,7 @@ function validateChunk(chunk, frame, where, errors, { requireProto }) {
   return bytes;
 }
 
-/** Validate the chunk set of one frame and return its payload-byte sum. */
+/** Validate the part set of one frame and return its payload-byte sum. */
 function validateFrameChunks(frame, where, errors, { requireProto }) {
   const label = `${where} frame ${frame?.updateId}`;
   if (!frame || typeof frame !== 'object') {
@@ -236,22 +236,22 @@ function validateFrameChunks(frame, where, errors, { requireProto }) {
     && frame.width * frame.height > LIMITS.maxFramePixels) {
     errors.push(`${label}: ${frame.width}x${frame.height} exceeds the pixel cap`);
   }
-  if (!Array.isArray(frame.chunks) || frame.chunks.length === 0) {
-    errors.push(`${label}: chunks is not a non-empty array`);
+  if (!Array.isArray(frame.parts) || frame.parts.length === 0) {
+    errors.push(`${label}: parts is not a non-empty array`);
     return 0;
   }
-  const count = frame.chunks.length;
+  const count = frame.parts.length;
   let bytes = 0;
-  frame.chunks.forEach((chunk, index) => {
-    bytes += validateChunk(chunk, frame, label, errors, { requireProto });
-    if (isInteger(chunk?.index) && chunk.index !== index) {
-      errors.push(`${label}: chunk at position ${index} declares index ${chunk.index}`);
+  frame.parts.forEach((part, index) => {
+    bytes += validateChunk(part, frame, label, errors, { requireProto });
+    if (isInteger(part?.index) && part.index !== index) {
+      errors.push(`${label}: part at position ${index} declares index ${part.index}`);
     }
-    if (isInteger(chunk?.count) && chunk.count !== count) {
-      errors.push(`${label}: chunk ${index} declares count ${chunk.count}, expected ${count}`);
+    if (isInteger(part?.count) && part.count !== count) {
+      errors.push(`${label}: part ${index} declares count ${part.count}, expected ${count}`);
     }
   });
-  const declared = frame.chunks.map((chunk) => chunk?.updateBytes);
+  const declared = frame.parts.map((part) => part?.updateBytes);
   for (const value of declared) {
     if (isInteger(value) && value !== bytes) {
       errors.push(`${label}: updateBytes ${value} does not equal the region payload sum ${bytes}`);
@@ -323,28 +323,28 @@ export function validateVectors(doc) {
 }
 
 /**
- * Validate a standalone chunk fixture (the corpus `expect-error` shapes that
- * carry `chunk` or `chunks`). These fixtures are the *corrupted* inputs the
+ * Validate a standalone part fixture (the corpus `expect-error` shapes that
+ * carry `part` or `parts`). These fixtures are the *corrupted* inputs the
  * codec must refuse, so only the shape and the hex format are checked here:
  * a region deliberately outside its frame, or an empty payload, is the case
  * under test, not a file defect.
  */
-function validateStandaloneChunk(chunk, where, errors) {
-  const label = `${where} chunk`;
-  if (!chunk || typeof chunk !== 'object') {
+function validateStandaloneChunk(part, where, errors) {
+  const label = `${where} part`;
+  if (!part || typeof part !== 'object') {
     errors.push(`${label}: not an object`);
     return;
   }
   for (const field of ['updateId', 'baseUpdateId', 'width', 'height', 'partIndex', 'partCount', 'updateBytes', 'codec']) {
-    if (!isInteger(chunk[field])) {
+    if (!isInteger(part[field])) {
       errors.push(`${label}: ${field} is not an integer`);
     }
   }
-  if (!Array.isArray(chunk.regions)) {
+  if (!Array.isArray(part.regions)) {
     errors.push(`${label}: regions is not an array`);
     return;
   }
-  for (const [index, region] of chunk.regions.entries()) {
+  for (const [index, region] of part.regions.entries()) {
     if (!region || typeof region !== 'object'
       || ['x', 'y', 'width', 'height'].some((field) => !isInteger(region[field]))) {
       errors.push(`${label} region[${index}]: x/y/width/height must be integers`);
@@ -419,9 +419,9 @@ export function validateCorpus(doc) {
       if (!RESYNC_REASONS.includes(testCase.reason)) {
         errors.push(`${label}: reason ${JSON.stringify(testCase.reason)} is not a resync reason`);
       }
-      const carries = ['payload', 'chunk', 'chunks'].some((key) => testCase[key] !== undefined);
+      const carries = ['payload', 'part', 'parts'].some((key) => testCase[key] !== undefined);
       if (!carries) {
-        errors.push(`${label}: expect-error needs payload, chunk, or chunks`);
+        errors.push(`${label}: expect-error needs payload, part, or parts`);
       }
       if (testCase.payload !== undefined) {
         const problem = hexProblem(testCase.payload);
@@ -436,15 +436,15 @@ export function validateCorpus(doc) {
       if (testCase.coverage !== undefined && !['full', 'sparse'].includes(testCase.coverage)) {
         errors.push(`${label}: coverage ${JSON.stringify(testCase.coverage)} is not full or sparse`);
       }
-      if (testCase.chunk !== undefined) {
-        validateStandaloneChunk(testCase.chunk, label, errors);
+      if (testCase.part !== undefined) {
+        validateStandaloneChunk(testCase.part, label, errors);
       }
-      if (testCase.chunks !== undefined) {
-        if (!Array.isArray(testCase.chunks) || testCase.chunks.length === 0) {
-          errors.push(`${label}: chunks is not a non-empty array`);
+      if (testCase.parts !== undefined) {
+        if (!Array.isArray(testCase.parts) || testCase.parts.length === 0) {
+          errors.push(`${label}: parts is not a non-empty array`);
         } else {
-          for (const chunk of testCase.chunks) {
-            validateStandaloneChunk(chunk, label, errors);
+          for (const part of testCase.parts) {
+            validateStandaloneChunk(part, label, errors);
           }
         }
       }

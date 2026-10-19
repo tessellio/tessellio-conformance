@@ -10,7 +10,13 @@
       "frames": [
         {
           "baseUpdateId": 6,
-          "chunks": [
+          "expect": {
+            "ack": true,
+            "appliedUpdateId": 7,
+            "paints": "nothing"
+          },
+          "height": 4,
+          "parts": [
             {
               "count": 1,
               "index": 0,
@@ -19,25 +25,25 @@
               "updateBytes": 0
             }
           ],
-          "expect": {
-            "ack": true,
-            "appliedUpdateId": 7,
-            "paints": "nothing"
-          },
-          "height": 4,
           "updateId": 7,
           "width": 8
         }
       ],
-      "id": "V1-empty-delta-idle-frame",
-      "summary": "A frame with no chunks and no regions: the header alone is a complete, applyable frame. frame_bytes and chunk_index are proto3 defaults and are omitted.",
-      "title": "Empty delta (idle frame)"
+      "id": "V1-empty-delta-idle-update",
+      "summary": "A update with no parts and no regions: the header alone is a complete, applyable update. update_bytes and part_index are proto3 defaults and are omitted.",
+      "title": "Empty delta (idle update)"
     },
     {
       "frames": [
         {
           "baseUpdateId": 1,
-          "chunks": [
+          "expect": {
+            "ack": true,
+            "appliedUpdateId": 2,
+            "paints": "region-local"
+          },
+          "height": 4,
+          "parts": [
             {
               "count": 1,
               "index": 0,
@@ -55,12 +61,6 @@
               "updateBytes": 22
             }
           ],
-          "expect": {
-            "ack": true,
-            "appliedUpdateId": 2,
-            "paints": "region-local"
-          },
-          "height": 4,
           "updateId": 2,
           "width": 8
         }
@@ -73,7 +73,13 @@
       "frames": [
         {
           "baseUpdateId": 0,
-          "chunks": [
+          "expect": {
+            "ack": true,
+            "appliedUpdateId": 3,
+            "paints": "full-coverage"
+          },
+          "height": 3,
+          "parts": [
             {
               "count": 1,
               "index": 0,
@@ -91,25 +97,25 @@
               "updateBytes": 36
             }
           ],
-          "expect": {
-            "ack": true,
-            "appliedUpdateId": 3,
-            "paints": "full-coverage"
-          },
-          "height": 3,
           "updateId": 3,
           "width": 6
         }
       ],
-      "id": "V3-full-coverage-multi-row-fill-reset",
-      "summary": "A reset frame (base 0) whose single region must cover every row contiguously: one ROW and one row-maximum FILL per row. A stream with a missing row or a gap must be rejected with COVERAGE_INVALID (the corpus carries both mutants).",
-      "title": "Full-coverage multi-row FILL (reset frame)"
+      "id": "V3-full-coverage-multi-row-fill-self-contained",
+      "summary": "A reset update (base 0) whose single region must cover every row contiguously: one ROW and one row-maximum FILL per row. A stream with a missing row or a gap must be rejected with COVERAGE_INVALID (the corpus carries both mutants).",
+      "title": "Full-coverage multi-row FILL (reset update)"
     },
     {
       "frames": [
         {
           "baseUpdateId": 8,
-          "chunks": [
+          "expect": {
+            "ack": true,
+            "appliedUpdateId": 9,
+            "paints": "region-local"
+          },
+          "height": 4,
+          "parts": [
             {
               "count": 1,
               "index": 0,
@@ -135,25 +141,25 @@
               "updateBytes": 46
             }
           ],
-          "expect": {
-            "ack": true,
-            "appliedUpdateId": 9,
-            "paints": "region-local"
-          },
-          "height": 4,
           "updateId": 9,
           "width": 8
         }
       ],
       "id": "V4-multi-region-sparse-delta",
-      "summary": "Two disjoint regions in one chunk: region A writes frame rows 0 and 1 only at x=1..2 and x=6..7, region B writes frame row 2 at x=3. Frame row 3 is never written.",
+      "summary": "Two disjoint regions in one part: region A writes update rows 0 and 1 only at x=1..2 and x=6..7, region B writes update row 2 at x=3. Frame row 3 is never written.",
       "title": "Multi-region sparse delta with a skipped row"
     },
     {
       "frames": [
         {
           "baseUpdateId": 9,
-          "chunks": [
+          "expect": {
+            "ack": true,
+            "appliedUpdateId": 10,
+            "paints": "after-all-chunks"
+          },
+          "height": 4,
+          "parts": [
             {
               "count": 2,
               "index": 0,
@@ -187,19 +193,13 @@
               "updateBytes": 32
             }
           ],
-          "expect": {
-            "ack": true,
-            "appliedUpdateId": 10,
-            "paints": "after-all-chunks"
-          },
-          "height": 4,
           "updateId": 10,
           "width": 8
         }
       ],
-      "id": "V5-chunked-frame-two-chunks",
-      "summary": "One frame in two chunks: every chunk repeats frame_id, base_frame_id, geometry, chunk_count and frame_bytes; the frame is applied only after both chunks, and a receiver that sees chunk 1 first refuses the frame (missed_first_chunk).",
-      "title": "Chunked frame (two chunks) and chunk identity"
+      "id": "V5-parted-update-two-parts",
+      "summary": "One update in two parts: every part repeats update_id, base_update_id, geometry, part_count and update_bytes; the update is applied only after both parts, and a receiver that sees part 1 first refuses the update (missed_first_part).",
+      "title": "Chunked update (two parts) and part identity"
     }
   ]
 }

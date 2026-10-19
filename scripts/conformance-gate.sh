@@ -185,7 +185,7 @@ check_consumer() {
         skip "corpus: the browser consumer (no repository at $ts_dir)"
         return
     fi
-    if ! ( cd "$ts_dir" && npm test -- --run src/screen-op.test.ts ) \
+    if ! ( cd "$ts_dir" && npm test -- src/op-stream.test.ts ) \
             >"$LOGDIR/ts-consumer.log" 2>&1; then
         fail "corpus: consumed by the browser" "the browser consumer failed; its log follows"
         tail -20 "$LOGDIR/ts-consumer.log" >&2
@@ -241,10 +241,10 @@ import sys
 path = sys.argv[1]
 document = json.load(open(path))
 for vector in document["vectors"]:
-    for chunk in vector["frames"][0]["chunks"]:
-        if not chunk["regions"]:
+    for part in vector["frames"][0]["parts"]:
+        if not part["regions"]:
             continue
-        chunk["regions"][0]["payload"] = "not-hex"
+        part["regions"][0]["payload"] = "not-hex"
         break
     else:
         continue

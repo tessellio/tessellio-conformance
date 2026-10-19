@@ -76,7 +76,7 @@ test('the vectors file carries exactly the five documented ids', () => {
   assert.deepEqual(doc.vectors.map((vector) => vector.id), EXPECTED_VECTOR_IDS);
   const dropped = vectorsFixture();
   dropped.vectors.pop();
-  expectError(validateVectors(dropped), /vector V5-chunked-frame-two-chunks is missing/);
+  expectError(validateVectors(dropped), /vector V5-parted-update-two-parts is missing/);
   const duplicated = vectorsFixture();
   duplicated.vectors.push(structuredClone(duplicated.vectors[0]));
   expectError(validateVectors(duplicated), /expected 5 vectors|duplicate vector id/);
@@ -93,39 +93,39 @@ test('the vectors file pins the codec identity and schema', () => {
 
 test('vectors hex must be even-length and lowercase', () => {
   const uppercase = vectorsFixture();
-  uppercase.vectors[1].frames[0].chunks[0].regions[0].payload =
-    uppercase.vectors[1].frames[0].chunks[0].regions[0].payload.toUpperCase();
+  uppercase.vectors[1].frames[0].parts[0].regions[0].payload =
+    uppercase.vectors[1].frames[0].parts[0].regions[0].payload.toUpperCase();
   expectError(validateVectors(uppercase), /payload is not lowercase hex/);
   const odd = vectorsFixture();
-  odd.vectors[1].frames[0].chunks[0].regions[0].payload += '0';
+  odd.vectors[1].frames[0].parts[0].regions[0].payload += '0';
   expectError(validateVectors(odd), /payload has an odd hex length/);
 });
 
 test('vectors cells565 must be exactly the region canvas', () => {
   const wrongLength = vectorsFixture();
-  wrongLength.vectors[1].frames[0].chunks[0].regions[0].cells565 += '00';
+  wrongLength.vectors[1].frames[0].parts[0].regions[0].cells565 += '00';
   expectError(validateVectors(wrongLength), /cells565 is \d+ bytes, expected \d+/);
 });
 
-test('vectors arithmetics: updateBytes, chunk identity, proto cross-reference', () => {
+test('vectors arithmetics: updateBytes, part identity, proto cross-reference', () => {
   const wrongBytes = vectorsFixture();
-  wrongBytes.vectors[3].frames[0].chunks[0].updateBytes += 2;
+  wrongBytes.vectors[3].frames[0].parts[0].updateBytes += 2;
   expectError(validateVectors(wrongBytes), /updateBytes \d+ does not equal the region payload sum/);
 
   const wrongCount = vectorsFixture();
-  wrongCount.vectors[4].frames[0].chunks[1].count = 1;
+  wrongCount.vectors[4].frames[0].parts[1].count = 1;
   expectError(validateVectors(wrongCount), /declares count 1, expected 2/);
 
   const wrongIndex = vectorsFixture();
-  wrongIndex.vectors[4].frames[0].chunks[0].index = 1;
-  expectError(validateVectors(wrongIndex), /chunk at position 0 declares index 1/);
+  wrongIndex.vectors[4].frames[0].parts[0].index = 1;
+  expectError(validateVectors(wrongIndex), /part at position 0 declares index 1/);
 
   const missingPayload = vectorsFixture();
-  missingPayload.vectors[2].frames[0].chunks[0].regions[0].payload = '010b00f4ff010000020000010000f801';
-  expectError(validateVectors(missingPayload), /does not occur in the chunk proto hex/);
+  missingPayload.vectors[2].frames[0].parts[0].regions[0].payload = '010b00f4ff010000020000010000f801';
+  expectError(validateVectors(missingPayload), /does not occur in the part proto hex/);
 
   const outside = vectorsFixture();
-  outside.vectors[1].frames[0].chunks[0].regions[0].x = 100;
+  outside.vectors[1].frames[0].parts[0].regions[0].x = 100;
   expectError(validateVectors(outside), /region is outside the frame/);
 });
 
@@ -150,10 +150,10 @@ test('the corpus carries at least 64 uniquely identified cases', () => {
   expectError(validateCorpus(unknownMode), /unknown mode/);
 });
 
-test('corpus roundtrip frames keep the chunk and hex arithmetic', () => {
+test('corpus roundtrip frames keep the part and hex arithmetic', () => {
   const wrongBytes = corpusFixture();
   const roundtrip = wrongBytes.cases.find((testCase) => testCase.mode === 'roundtrip');
-  roundtrip.frames[0].chunks[0].updateBytes += 1;
+  roundtrip.frames[0].parts[0].updateBytes += 1;
   expectError(validateCorpus(wrongBytes), /updateBytes \d+ does not equal the region payload sum/);
 
   const wrongPixels = corpusFixture();
@@ -177,9 +177,9 @@ test('corpus expect-error cases keep a reason and an input', () => {
   const withoutInput = corpusFixture();
   const errorCase = withoutInput.cases.find((testCase) => testCase.mode === 'expect-error');
   delete errorCase.payload;
-  delete errorCase.chunk;
-  delete errorCase.chunks;
-  expectError(validateCorpus(withoutInput), /expect-error needs payload, chunk, or chunks/);
+  delete errorCase.part;
+  delete errorCase.parts;
+  expectError(validateCorpus(withoutInput), /expect-error needs payload, part, or parts/);
 
   const badCoverage = corpusFixture();
   badCoverage.cases.find((testCase) => testCase.mode === 'expect-error').coverage = 'partial';
