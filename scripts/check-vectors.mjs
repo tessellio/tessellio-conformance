@@ -234,7 +234,7 @@ function validateFrameChunks(frame, where, errors, { requireProto }) {
   }
   if (isInteger(frame.width) && isInteger(frame.height)
     && frame.width * frame.height > LIMITS.maxFramePixels) {
-    errors.push(`${label}: ${frame.width}x${frame.height} exceeds the pixel cap`);
+    errors.push(`${label}: ${frame.width}x${frame.height} exceeds the cell cap`);
   }
   if (!Array.isArray(frame.parts) || frame.parts.length === 0) {
     errors.push(`${label}: parts is not a non-empty array`);
