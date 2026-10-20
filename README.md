@@ -97,6 +97,21 @@ The corpus is generated, never written by hand.
 3. Extend the static checker if the case exercises a rule it does not yet
    enforce.
 
+## Status
+
+In development. One moving version, `v0.1.0`, naming the current commit:
+there is exactly one tag, and a change moves it.
+
 ## Licence
 
 PolyForm Noncommercial License 1.0.0. See [LICENSE](LICENSE).
+
+## The sibling repositories
+
+| repository | what it holds |
+|---|---|
+| [`tessellio`](https://github.com/tessellio/tessellio) | the normative specification |
+| [`tessellio-core`](https://github.com/tessellio/tessellio-core) | the Rust reference implementation, and the codec's command-line tool |
+| [`tessellio-ts`](https://github.com/tessellio/tessellio-ts) | the browser reference implementation |
+| [`tessellio-proto`](https://github.com/tessellio/tessellio-proto) | the update envelope's wire schema |
+| [`tessellio-conformance`](https://github.com/tessellio/tessellio-conformance) | the conformance corpus and its gate |
