@@ -9,7 +9,7 @@ It is read by **both** implementations:
 | Consumer | Resolves | Contract |
 |---|---|---|
 | The reference implementation | `tessellio-core/tests/codec_corpus_gen.rs`, compiled by the gate | regenerates the corpus; the gate then compares it byte for byte |
-| The browser implementation | `tessellio-ts/src/screen-op.test.ts` | replays every committed case through the decoder and requires the committed expectations to hold |
+| The browser implementation | `tessellio-ts/src/op-stream.test.ts` | replays every committed case through the decoder and requires the committed expectations to hold |
 
 There is exactly **one** corpus file. The gate asserts that both consumers
 resolve to it, so a consumer pointed at a second copy fails there rather than
@@ -73,11 +73,11 @@ specification by eye:
 
 | Vector | What it pins |
 |---|---|
-| `V1-empty-delta-idle-frame` | the header alone is a complete, applyable update |
+| `V1-empty-delta-idle-update` | the header alone is a complete, applyable update |
 | `V2-literal-run-sparse-delta` | a literal run, and the row the op stream never writes |
-| `V3-full-coverage-multi-row-fill-reset` | a self-contained update covering the whole surface |
+| `V3-full-coverage-multi-row-fill-self-contained` | a self-contained update covering the whole surface |
 | `V4-multi-region-sparse-delta` | several regions, byte-disjoint, in one update |
-| `V5-chunked-frame-two-chunks` | an update split into two parts, and their byte arithmetic |
+| `V5-parted-update-two-parts` | an update split into two parts, and their byte arithmetic |
 
 ## The corpus
 

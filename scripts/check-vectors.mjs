@@ -1,23 +1,24 @@
 #!/usr/bin/env node
 /**
- * Screen-codec conformance file gate (`just codec-vectors`).
+ * Screen-codec conformance file gate (the `vectors` step of
+ * `scripts/conformance-gate.sh`).
  *
  * THE FILES IT GUARDS, AND WHY THEY ARE GUARDED STATICALLY
  * =======================================================
- * `conformance/vectors.json` holds five hand-derived wire vectors
+ * `vectors.json` holds five hand-derived wire vectors
  * (stored DEFLATE blocks, so every byte is verifiable by hand) that pin the
  * payload format of the `tessellio` screen-stream codec.
- * `conformance/corpus.json` is the generated conformance corpus
+ * `corpus.json` is the generated conformance corpus
  * (>= 64 cases) read by **both** decoders: the Rust conformance oracle in
- * the reference implementation and the browser test.
+ * `tessellio-core` and `tessellio-ts`'s browser test.
  *
- * The dynamic half of that contract lives in the gate: `cargo-gate.sh`'s
- * `codec_corpus()` step regenerates the corpus, compares it byte for byte with
- * the committed file, and requires the Rust consumer to print its
- * `codec-conformance: ... consumed=ok` marker. This step is the static half:
- * it validates the two files' schema, arithmetic and cross-references, and it
- * asserts that the two consumers both resolve to the same canonical corpus
- * file, so a consumer pointed at a second copy fails here rather than reading a
+ * The dynamic half of that contract lives in the gate: `conformance-gate.sh`
+ * regenerates the corpus, compares it byte for byte with the committed file,
+ * and requires both consumers to replay it clean. This step is the static
+ * half: it validates the two files' schema, arithmetic and cross-references,
+ * and it asserts that the two consumers both resolve to the same canonical
+ * corpus file, so a consumer pointed at a second copy fails here rather than
+ * reading a
  * file nothing regenerates.
  *
  * WHAT IS CHECKED
@@ -490,8 +491,11 @@ export function checkConsumers(root = REPO_ROOT) {
   if (!match) {
     errors.push(`${TS_CONSUMER_RELATIVE} does not name a relative path under conformance/`);
   } else {
-    const resolved = path.resolve(path.dirname(tsPath), match[1]);
-    const canonical = path.join(root, CORPUS_RELATIVE);
+    // A checkout may sit under whatever directory name its cloner chose
+    // (org/repository, plain repository, a symlink): the corpus is the same
+    // file when both paths land on the same real file.
+    const resolved = fs.realpathSync(path.resolve(path.dirname(tsPath), match[1]));
+    const canonical = fs.realpathSync(path.join(root, CORPUS_RELATIVE));
     if (resolved !== canonical) {
       errors.push(`${TS_CONSUMER_RELATIVE} resolves its corpus to ${resolved}, not ${canonical}`);
     }
